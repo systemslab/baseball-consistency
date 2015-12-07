@@ -101,7 +101,7 @@ public class MonotonicServer extends UnicastRemoteObject implements Client_Proxy
 			System.out.println("Not Latest data  " + str + "  "+localStore.get(key));
 		}*/
 		readTime = readTime + nanos2 - nanos;
-		System.out.println(readTime + "  non monotonic reads "+count);
+		System.out.println("total time taken for monotonic reads "+(readTime + count*23000000) + " with read agains "+count);
 		return str;
 	}
 	

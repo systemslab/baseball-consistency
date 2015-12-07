@@ -49,7 +49,7 @@ public class Client implements Runnable{
 						i--;
 						System.out.println("read" + cpinterface.get((int)(Math.random()*10)));
 					}
-					System.out.println(Thread.currentThread().getName() + " time taken is " + (System.currentTimeMillis() - currentTimeinMillis));
+					//System.out.println(Thread.currentThread().getName() + " time taken is " + (System.currentTimeMillis() - currentTimeinMillis));
 				} catch (IOException | NotBoundException e) {
 					e.printStackTrace();
 				}

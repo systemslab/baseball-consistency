@@ -49,7 +49,7 @@ public class MonotonicClient implements Runnable{
 						System.out.println("read" + cpinterface.get((int)(Math.random()*10)));
 						i++;
 					}
-					System.out.println(Thread.currentThread().getName() + " time taken is " + (System.currentTimeMillis() - currentTimeinMillis));
+					//System.out.println(Thread.currentThread().getName() + " time taken is " + (System.currentTimeMillis() - currentTimeinMillis));
 				} catch (IOException | NotBoundException e) {
 					e.printStackTrace();
 				}

@@ -1,13 +1,3 @@
-===============
-docker-baseball
-===============
-
-Client-server implementation for exploring the 6 consistency semantics in Doug Terry's paper: 
-[Replicated Data Consistency Explained Through Baseball](http://research.microsoft.com/pubs/206913/ConsistencyAndBaseballCACMAccepted.pdf)
-
-Quickstart
-==========
-
 Compiled classes are already present in bin folder.
 
 To run the compiled classes, go to bin folder.
@@ -31,15 +21,11 @@ open terminal 3
 
 To rerun the experiments terminate all three process and run again.
 
-Compile and Install
-===================
 
 If you want to compile the code, go to the src folder and compile appropriate files
 
-```bash
 javac Client.java ../Proxy/Client_Proxy_interface.java
 javac Proxy/ProxyServer.java Clusters/Proxy_Cluster_interface.java
 javac Clusters/Cluster.java
-```
 
 and run the class files from the src directory.

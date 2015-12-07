@@ -12,19 +12,16 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import Clusters.Proxy_Cluster_interface;
 
-public class StaleBoundServer extends UnicastRemoteObject implements Client_Proxy_interface {
-	int cluster_size = 2;
-	Proxy_Cluster_interface pci[] = new Proxy_Cluster_interface[cluster_size];
-	static HashMap<Integer, Lock> hashMap = new HashMap<Integer, Lock>();
-	long staleBoundLimit = 0, readTime = 0,count = 0;
-	HashMap<Integer, Integer> localStore[] = new HashMap[cluster_size];
-	protected StaleBoundServer() throws RemoteException {
+public class Proxy_Eventual_Server extends UnicastRemoteObject implements Client_Proxy_interface {
+	
+	Proxy_Cluster_interface pci[] = new Proxy_Cluster_interface[2];
+	static HashMap<Integer, Lock> hashMap = new HashMap<>();
+	long readTime = 0;
+	HashMap<Integer, String> localStore = new HashMap<>();
+	protected Proxy_Eventual_Server() throws RemoteException {
 		try {
 			pci[0] = (Proxy_Cluster_interface)Naming.lookup("cluster0");
 			pci[1] = (Proxy_Cluster_interface)Naming.lookup("cluster1");
-			for(int i = 0; i<cluster_size;i++){
-				localStore[i] = new HashMap<Integer, Integer>();
-			}
 		} catch (MalformedURLException | NotBoundException e) {
 			e.printStackTrace();
 		}
@@ -33,7 +30,7 @@ public class StaleBoundServer extends UnicastRemoteObject implements Client_Prox
 
 	public static void main(String[] args) {
 		try {
-			StaleBoundServer p = new StaleBoundServer();
+			Proxy_Eventual_Server p = new Proxy_Eventual_Server();
 			Naming.rebind("client_proxy", p);
 		} catch (RemoteException | MalformedURLException e) {
 			e.printStackTrace();
@@ -53,79 +50,61 @@ public class StaleBoundServer extends UnicastRemoteObject implements Client_Prox
 		while (true) {
 			if (lock.tryLock()) {
 				pci[0].put(key, value);
-				localStore[0].put(key, localStore[0].get(key)+1);
+				localStore.put(key, value);
 				try {
 					Thread.sleep(23);
 				} catch (InterruptedException e) {
 					e.printStackTrace();
 				}
 				pci[1].put(key, value);
-				localStore[1].put(key, localStore[1].get(key)+1);
 				try {
 					Thread.sleep(23);
 				} catch (InterruptedException e) {
 					e.printStackTrace();
 				}
 				lock.unlock();
+				/*synchronized (lock) {
+					lock.notifyAll();	
+				}*/
 				//System.out.println("key "+key+ " released");
 				break;
-			} 
+			}/*else{
+				try {
+					synchronized (lock) {
+						lock.wait();	
+					}
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}*/
 		}
 		return true;
 	}
 
 	public String get(int key) throws RemoteException {
+		// Eventually consistent read
 		long nanos = ManagementFactory.getThreadMXBean().getThreadCpuTime(Thread.currentThread().getId());
-		String str = null;
-		int index = (int)(Math.random()*2);
-		int max = findMax(key);
-			if((max - localStore[index].get(key)) <= staleBoundLimit){
-				str = pci[index].get(key);
-				try {
-					Thread.sleep(23);
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
-			} else{
-				count++;
-				System.out.println("not stale bounded read");
-				while(true){
-					index = (index+1)%2;
-					if((max - localStore[index].get(key)) <= staleBoundLimit){
-						break;
-					}
-				}
-				str = pci[index].get(key);
-				try {
-					Thread.sleep(23);
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
-				
-			}
-			
-		
-		long nanos2 = ManagementFactory.getThreadMXBean().getThreadCpuTime(Thread.currentThread().getId());
-		System.out.println("time taken for read with key "+key+" is "+ (nanos2-nanos));
-		readTime = readTime + nanos2 - nanos;
-		System.out.println("total time taken for stale bounded reads "+(readTime+ count*23000000)+ " read agains "+count);
-		return str;
-	
-	}
-	
-	int findMax(int key){
-		int max = 0;
-		for(int i = 0; i<cluster_size; i++){
-			if(max<localStore[i].get(key)){
-				max = localStore[i].get(key);
-			}
+		String str = pci[(int)(Math.random()*2)].get(key);
+		try {
+			Thread.sleep(23);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
-		return max;
+		long nanos2 = ManagementFactory.getThreadMXBean().getThreadCpuTime(Thread.currentThread().getId());
+		System.out.println("time taken for eventual read with key "+key+" is "+ (nanos2-nanos));
+		if(!str.equals(localStore.get(key))){
+			System.out.println("Not Latest data  " + str + "  "+localStore.get(key));
+		}
+		readTime = readTime + nanos2 - nanos;
+		System.out.println("total time taken "+readTime);
+		return str;
 	}
 	
 	public String getWithLock(int key, Lock lock) throws RemoteException{
 		String str = null;
-		/*long nanos = ManagementFactory.getThreadMXBean().getThreadCpuTime(Thread.currentThread().getId());
+		long nanos = ManagementFactory.getThreadMXBean().getThreadCpuTime(Thread.currentThread().getId());
 		while (true) {
 			if (lock.tryLock()) {
 				str = pci[(int)(Math.random()*2)].get(key);
@@ -145,7 +124,7 @@ public class StaleBoundServer extends UnicastRemoteObject implements Client_Prox
 		long nanos2 = ManagementFactory.getThreadMXBean().getThreadCpuTime(Thread.currentThread().getId());
 		System.out.println("time taken for strong read with key "+key+" is "+ (nanos2-nanos));
 		readTime = readTime + nanos2 - nanos;
-		System.out.println("total time is: "+readTime);*/
+		System.out.println("total time is: "+readTime);
 
 		return str;
 	}
@@ -157,10 +136,6 @@ public class StaleBoundServer extends UnicastRemoteObject implements Client_Prox
 		}
 		lock = new ReentrantLock();
 		hashMap.put(key, lock);
-		for(int i = 0; i < cluster_size; i++)
-		{
-			localStore[i].put(key, 0);	
-		}
 		return lock;
 	}
 }
