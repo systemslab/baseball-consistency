@@ -1,0 +1,27 @@
+Compiled classes are already present in bin folder.
+
+To run the compiled classes, go to bin folder.
+
+Open a terminal and run the following commands:
+
+1. rmiregistry &
+2. java Clusters.BaseballCluster
+
+open terminal 2
+1. java Proxy.BaseballProxy (for strong consistency)
+
+open terminal 3
+
+1. java Clients.Client (Reading 1 key at a time, total 10 keys)
+2. java Clients.BaseballClient (Reading 2 keys at a time, Total 2 keys)
+
+To rerun the experiments terminate all three process and run again.
+
+
+If you want to compile the code, go to the src folder and compile appropriate files
+
+javac Clients/Client.java ../Proxy/Client_Proxy_interface.java
+javac Proxy/BaseballProxy.java Clusters/Proxy_Cluster_interface.java
+javac Clusters/BaseballCluster.java
+
+and run the class files from the src directory.
